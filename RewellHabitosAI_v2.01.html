@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- PDF.js library for validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -164,6 +166,9 @@
     </div>
 
     <script>
+        // Setup PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js`;
+
         document.addEventListener('DOMContentLoaded', () => {
             const uploadScreen = document.getElementById('upload-screen');
             const loadingScreen = document.getElementById('loading-screen');
@@ -252,6 +257,15 @@
                 const maxSize = mode === 'single' ? MAX_FILE_SIZE_SINGLE : MAX_FILE_SIZE_DUAL;
                 const maxSizeText = mode === 'single' ? '25 MB' : '10 MB';
                 
+                // Basic file type check for immediate feedback
+                if (file.type !== 'application/pdf') {
+                    showError(`El archivo "${file.name}" no es un PDF. Por favor, sube un archivo PDF.`);
+                    fileVarSetter(null);
+                    updateFileListUI();
+                    updateButtonState();
+                    return;
+                }
+
                 if (file.size > maxSize) {
                     showError(`El archivo "${file.name}" es demasiado grande (máx. ${maxSizeText}).`);
                     fileVarSetter(null);
@@ -297,6 +311,40 @@
                 updateButtonState();
             };
 
+            /**
+             * Validates a PDF file to ensure it's a Rewell report.
+             * @param {File} file The PDF file to validate.
+             * @returns {Promise<boolean>} A promise that resolves to true if valid, or rejects with an error.
+             */
+            async function validatePdf(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        try {
+                            const pdf = await pdfjsLib.getDocument({ data: event.target.result }).promise;
+                            const page = await pdf.getPage(1); // Get the first page
+                            const textContent = await page.getTextContent();
+                            const pageText = textContent.items.map(item => item.str).join(' ').toUpperCase();
+
+                            if (pageText.includes("REPORTE DE RESULTADOS")) {
+                                resolve(true); // Validation successful
+                            } else {
+                                // The file is a PDF, but not a valid Rewell report
+                                reject(new Error(`El archivo "${file.name}" no parece ser un reporte de Rewell.`));
+                            }
+                        } catch (error) {
+                            console.error("Error validando el PDF:", error);
+                            reject(new Error(`No se pudo leer o procesar el archivo PDF: "${file.name}".`));
+                        }
+                    };
+                    reader.onerror = () => {
+                        reject(new Error(`Error al leer el archivo: "${file.name}".`));
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+
             const handleAnalysis = async () => {
                 const apiKey = "AIzaSyASKTV6JD2FfHqH7HTKbeXVnmn2pQJ_OvQ"; 
 
@@ -306,10 +354,30 @@
                 }
                 
                 showError("");
-                loadingTitle.textContent = "Analizando tu reporte...";
-                loadingText.textContent = "El análisis puede demorar entre 3 y 5 minutos. ¡Puedes ir a buscar un café si quieres!";
+                loadingTitle.textContent = "Validando archivos...";
+                loadingText.textContent = "Por favor, espera un momento.";
                 uploadScreen.style.display = 'none';
                 loadingScreen.style.display = 'flex';
+
+                // --- START VALIDATION LOGIC ---
+                try {
+                    const filesToValidate = uploadMode === 'single' ? [reportFile] : [geneticsFile, microbiomeFile];
+                    for (const file of filesToValidate) {
+                        if (!file) continue; // Should not happen due to button state, but as a safeguard.
+                        await validatePdf(file); // Throws an error if validation fails
+                    }
+                } catch (validationError) {
+                    console.error("Error de validación:", validationError);
+                    showError("No puedo analizar esos archivos ya que no corresponden a Rewell.");
+                    loadingScreen.style.display = 'none';
+                    uploadScreen.style.display = 'flex';
+                    return; // Stop the process
+                }
+                // --- END VALIDATION LOGIC ---
+
+                // If validation is successful, proceed to analysis
+                loadingTitle.textContent = "Analizando tu reporte...";
+                loadingText.textContent = "El análisis puede demorar entre 3 y 5 minutos. ¡Puedes ir a buscar un café si quieres!";
 
                 try {
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
