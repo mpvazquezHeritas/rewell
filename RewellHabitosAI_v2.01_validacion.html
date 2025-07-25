@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Panel de Bienestar con IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- PDF.js library for validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* slate-100 */
+        }
+        .file-drop-zone {
+            transition: all 0.3s ease;
+        }
+        .file-drop-zone.dragover {
+            border-color: #f97316; /* orange-500 */
+            background-color: #fff7ed; /* orange-50 */
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active {
+            color: #f97316; /* orange-500 */
+            border-bottom-color: #f97316;
+        }
+        #results-screen {
+            display: none;
+        }
+        #loading-screen {
+            display: none;
+        }
+        /* Loading animation styles */
+        .dot-pulse {
+            animation: dotPulse 1.5s infinite ease-in-out;
+        }
+        .dot-pulse:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .dot-pulse:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes dotPulse {
+            0%, 100% {
+                transform: scale(0.8);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+        /* Print styles */
+        @media print {
+            body {
+                background-color: #ffffff !important;
+            }
+            header, footer.web-footer, .no-print {
+                display: none !important;
+            }
+            main {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .print-break-avoid {
+                page-break-inside: avoid;
+            }
+            section {
+                page-break-before: always;
+                margin-top: 0 !important;
+                padding-top: 2rem !important;
+            }
+            section:first-child {
+                page-break-before: auto;
+            }
+            .bg-white {
+                 box-shadow: none !important;
+                 border: 1px solid #e2e8f0;
+            }
+            .print-highlight {
+                background-color: #fff7ed !important; /* orange-50 */
+                border: 1px solid #fed7aa; /* orange-200 */
+            }
+            .print-highlight-text {
+                color: #1e3a8a !important; /* blue-900 */
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <div id="upload-screen" class="min-h-screen flex items-center justify-center p-4" style="background-color: #0c1e3e;">
+        <div class="w-full max-w-5xl mx-auto bg-white rounded-2xl shadow-xl flex flex-col md:flex-row overflow-hidden">
+            <!-- Columna del Logo -->
+            <div class="w-full md:w-5/12 bg-slate-50 flex justify-center items-center p-8 md:p-12">
+                <img src="https://app.getrewell.com/assets/loginRewellLogoXXXL-641263e2.png" alt="Logo de Rewell" class="max-w-[250px] w-full h-auto">
+            </div>
+
+            <!-- Columna del Contenido -->
+            <div class="w-full md:w-7/12 p-8 flex flex-col justify-center">
+                 <div class="text-center">
+                    <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-2">Genera tu Panel Personalizado de hábitos Saludables con REWELL</h1>
+                    <p class="text-slate-600 mb-6">Sube tu reporte de REWELL para comenzar.</p>
+
+                    <div class="flex justify-center border border-slate-200 rounded-lg p-1 mb-6 bg-slate-100 max-w-sm mx-auto">
+                        <button id="single-file-toggle" class="flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-colors">Un reporte</button>
+                        <button id="dual-file-toggle" class="flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-colors">Dos reportes</button>
+                    </div>
+
+                    <div id="single-file-view">
+                        <div id="drop-zone-single" class="file-drop-zone border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-orange-500">
+                            <input type="file" id="report-file-single" class="hidden" accept=".pdf">
+                            <svg class="mx-auto h-12 w-12 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                            <p class="mt-3 text-slate-600"><span class="font-semibold text-orange-600">Sube tu reporte completo</span></p>
+                            <p class="text-xs text-slate-500 mt-1">Arrastra o haz clic para seleccionar</p>
+                        </div>
+                    </div>
+
+                    <div id="dual-file-view" class="hidden">
+                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div id="drop-zone-genetics" class="file-drop-zone border-2 border-dashed border-slate-300 rounded-lg p-4 text-center cursor-pointer hover:border-orange-500">
+                                <input type="file" id="genetics-file" class="hidden" accept=".pdf">
+                                <svg class="mx-auto h-10 w-10 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                                <p class="mt-2 text-sm text-slate-600"><span class="font-semibold text-orange-600">Reporte de Genética</span></p>
+                            </div>
+                            <div id="drop-zone-microbiome" class="file-drop-zone border-2 border-dashed border-slate-300 rounded-lg p-4 text-center cursor-pointer hover:border-orange-500">
+                                <input type="file" id="microbiome-file" class="hidden" accept=".pdf">
+                                 <svg class="mx-auto h-10 w-10 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                                <p class="mt-2 text-sm text-slate-600"><span class="font-semibold text-orange-600">Reporte de Microbioma</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="file-list" class="mt-4 text-left text-sm"></div>
+
+                    <button id="analyze-button" class="mt-6 w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed">
+                        Generar mi Panel
+                    </button>
+                     <p id="error-message" class="text-red-500 text-sm mt-4 hidden"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-screen" class="min-h-screen flex items-center justify-center p-4 text-center">
+        <div>
+            <div class="flex justify-center items-center space-x-2 mb-6">
+                <div class="dot-pulse h-8 w-8 bg-orange-500 rounded-full"></div>
+                <div class="dot-pulse h-8 w-8 bg-orange-500 rounded-full"></div>
+                <div class="dot-pulse h-8 w-8 bg-orange-500 rounded-full"></div>
+            </div>
+            <h2 id="loading-title" class="text-2xl font-semibold text-slate-700 mb-2">Analizando tus reportes...</h2>
+            <p id="loading-text" class="text-slate-500">El análisis puede demorar entre 3 y 5 minutos. ¡Puedes ir a buscar un café si quieres!</p>
+        </div>
+    </div>
+
+    <div id="results-screen">
+    </div>
+
+    <script>
+        // Setup PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js`;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const uploadScreen = document.getElementById('upload-screen');
+            const loadingScreen = document.getElementById('loading-screen');
+            const resultsScreen = document.getElementById('results-screen');
+            const analyzeButton = document.getElementById('analyze-button');
+            const errorMessage = document.getElementById('error-message');
+            const loadingTitle = document.getElementById('loading-title');
+            const loadingText = document.getElementById('loading-text');
+
+            const singleFileToggle = document.getElementById('single-file-toggle');
+            const dualFileToggle = document.getElementById('dual-file-toggle');
+            const singleFileView = document.getElementById('single-file-view');
+            const dualFileView = document.getElementById('dual-file-view');
+            
+            const dropZoneSingle = document.getElementById('drop-zone-single');
+            const fileInputSingle = document.getElementById('report-file-single');
+            const dropZoneGenetics = document.getElementById('drop-zone-genetics');
+            const fileInputGenetics = document.getElementById('genetics-file');
+            const dropZoneMicrobiome = document.getElementById('drop-zone-microbiome');
+            const fileInputMicrobiome = document.getElementById('microbiome-file');
+            
+            const fileList = document.getElementById('file-list');
+
+            let uploadMode = 'single';
+            let reportFile = null;
+            let geneticsFile = null;
+            let microbiomeFile = null;
+            const MAX_FILE_SIZE_SINGLE = 25 * 1024 * 1024; // 25 MB
+            const MAX_FILE_SIZE_DUAL = 10 * 1024 * 1024; // 10 MB
+
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.classList.toggle('hidden', !message);
+            }
+            
+            function updateButtonState() {
+                if (uploadMode === 'single') {
+                    analyzeButton.disabled = !reportFile;
+                } else {
+                    analyzeButton.disabled = !(geneticsFile && microbiomeFile);
+                }
+            }
+
+            function updateFileListUI() {
+                fileList.innerHTML = '';
+                if (uploadMode === 'single') {
+                    if (reportFile) fileList.innerHTML = `<p class="text-slate-600 bg-emerald-50 p-2 rounded-md"><span class="font-semibold text-emerald-700">✓ Reporte Cargado:</span> ${reportFile.name}</p>`;
+                } else {
+                    let genHtml = `<p class="text-slate-500"><span class="font-semibold">Reporte de Genética:</span> No cargado</p>`;
+                    if(geneticsFile) {
+                       genHtml = `<p class="text-slate-600"><span class="font-semibold text-emerald-700">✓ Reporte de Genética:</span> ${geneticsFile.name}</p>`;
+                    }
+                    let microHtml = `<p class="text-slate-500 mt-1"><span class="font-semibold">Reporte de Microbioma:</span> No cargado</p>`;
+                     if(microbiomeFile) {
+                       microHtml = `<p class="text-slate-600 mt-1"><span class="font-semibold text-emerald-700">✓ Reporte de Microbioma:</span> ${microbiomeFile.name}</p>`;
+                    }
+                    if(geneticsFile || microbiomeFile) {
+                        fileList.innerHTML = `<div class="bg-emerald-50 p-2 rounded-md">${genHtml}${microHtml}</div>`;
+                    } else {
+                        fileList.innerHTML = ``;
+                    }
+                }
+            }
+
+            function setUploadMode(mode) {
+                uploadMode = mode;
+                if (mode === 'single') {
+                    singleFileToggle.classList.add('bg-white', 'text-orange-700');
+                    dualFileToggle.classList.remove('bg-white', 'text-orange-700');
+                    singleFileView.classList.remove('hidden');
+                    dualFileView.classList.add('hidden');
+                } else {
+                    dualFileToggle.classList.add('bg-white', 'text-orange-700');
+                    singleFileToggle.classList.remove('bg-white', 'text-orange-700');
+                    dualFileView.classList.remove('hidden');
+                    singleFileView.classList.add('hidden');
+                }
+                reportFile = null;
+                geneticsFile = null;
+                microbiomeFile = null;
+                updateFileListUI();
+                updateButtonState();
+            }
+
+            function handleFile(file, fileVarSetter, mode) {
+                const maxSize = mode === 'single' ? MAX_FILE_SIZE_SINGLE : MAX_FILE_SIZE_DUAL;
+                const maxSizeText = mode === 'single' ? '25 MB' : '10 MB';
+                
+                if (file.type !== 'application/pdf') {
+                    showError(`El archivo "${file.name}" no es un PDF. Por favor, sube un archivo PDF.`);
+                    fileVarSetter(null);
+                    updateFileListUI();
+                    updateButtonState();
+                    return;
+                }
+
+                if (file.size > maxSize) {
+                    showError(`El archivo "${file.name}" es demasiado grande (máx. ${maxSizeText}).`);
+                    fileVarSetter(null);
+                } else {
+                    fileVarSetter(file);
+                    showError("");
+                }
+                updateFileListUI();
+                updateButtonState();
+            }
+
+            function setupDropZone(dropZone, fileInput, fileVarSetter, mode) {
+                dropZone.addEventListener('click', () => fileInput.click());
+                ['dragover', 'dragenter'].forEach(eventName => dropZone.addEventListener(eventName, e => { e.preventDefault(); dropZone.classList.add('dragover'); }));
+                ['dragleave', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+                dropZone.addEventListener('drop', e => handleFile(e.dataTransfer.files[0], fileVarSetter, mode));
+                fileInput.addEventListener('change', e => handleFile(e.target.files[0], fileVarSetter, mode));
+            }
+
+            setupDropZone(dropZoneSingle, fileInputSingle, (file) => reportFile = file, 'single');
+            setupDropZone(dropZoneGenetics, fileInputGenetics, (file) => geneticsFile = file, 'dual');
+            setupDropZone(dropZoneMicrobiome, fileInputMicrobiome, (file) => microbiomeFile = file, 'dual');
+
+            singleFileToggle.addEventListener('click', () => setUploadMode('single'));
+            dualFileToggle.addEventListener('click', () => setUploadMode('dual'));
+            setUploadMode('single');
+
+            const pdfToBase64 = (file) => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.toString().replace(/^data:.+;base64,/, ''));
+                reader.onerror = error => reject(error);
+            });
+            
+            const resetApp = () => {
+                resultsScreen.style.display = 'none';
+                loadingScreen.style.display = 'none';
+                uploadScreen.style.display = 'flex';
+                reportFile = geneticsFile = microbiomeFile = null;
+                fileInputSingle.value = fileInputGenetics.value = fileInputMicrobiome.value = "";
+                updateFileListUI();
+                showError("");
+                updateButtonState();
+            };
+
+            /**
+             * Validates a PDF file to ensure it's a Rewell report by checking for footer text.
+             * @param {File} file The PDF file to validate.
+             * @returns {Promise<boolean>} A promise that resolves to true if valid, or rejects with an error.
+             */
+            async function validatePdf(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        try {
+                            const pdf = await pdfjsLib.getDocument({ data: event.target.result }).promise;
+                            let isRewellReport = false;
+
+                            // Check up to the first 5 pages, which is enough to find the repeating footer.
+                            const numPagesToCheck = Math.min(5, pdf.numPages);
+
+                            for (let pageNum = 1; pageNum <= numPagesToCheck; pageNum++) {
+                                const page = await pdf.getPage(pageNum);
+                                const textContent = await page.getTextContent();
+                                // Normalize text for robust matching
+                                const pageText = textContent.items.map(item => item.str).join(' ').replace(/\s+/g, ' ').trim().toUpperCase();
+
+                                if (pageText.includes("FECHA DE REPORTE")) {
+                                    isRewellReport = true;
+                                    break; // Found it, no need to check other pages
+                                }
+                            }
+
+                            if (isRewellReport) {
+                                resolve(true); // Validation successful
+                            } else {
+                                // If the loop completes and the text is not found
+                                reject(new Error(`El archivo "${file.name}" no parece ser un reporte de Rewell.`));
+                            }
+                        } catch (error) {
+                            console.error("Error validando el PDF:", error);
+                            reject(new Error(`No se pudo leer o procesar el archivo PDF: "${file.name}".`));
+                        }
+                    };
+                    reader.onerror = () => {
+                        reject(new Error(`Error al leer el archivo: "${file.name}".`));
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+
+            const handleAnalysis = async () => {
+                const apiKey = "AIzaSyASKTV6JD2FfHqH7HTKbeXVnmn2pQJ_OvQ"; 
+
+                if ((uploadMode === 'single' && !reportFile) || (uploadMode === 'dual' && (!geneticsFile || !microbiomeFile))) {
+                    showError("Por favor, sube los archivos requeridos.");
+                    return;
+                }
+                
+                showError("");
+                loadingTitle.textContent = "Validando archivos...";
+                loadingText.textContent = "Por favor, espera un momento.";
+                uploadScreen.style.display = 'none';
+                loadingScreen.style.display = 'flex';
+
+                // --- START VALIDATION LOGIC ---
+                try {
+                    const filesToValidate = uploadMode === 'single' ? [reportFile] : [geneticsFile, microbiomeFile];
+                    for (const file of filesToValidate) {
+                        if (!file) continue;
+                        await validatePdf(file); // This will throw an error if validation fails
+                    }
+                } catch (validationError) {
+                    console.error("Error de validación:", validationError);
+                    showError(validationError.message); // Show the specific error from validatePdf
+                    loadingScreen.style.display = 'none';
+                    uploadScreen.style.display = 'flex';
+                    return; // Stop the process
+                }
+                // --- END VALIDATION LOGIC ---
+
+                // If validation is successful, proceed to analysis
+                loadingTitle.textContent = "Analizando tu reporte...";
+                loadingText.textContent = "El análisis puede demorar entre 3 y 5 minutos. ¡Puedes ir a buscar un café si quieres!";
+
+                try {
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                    
+                    let prompt;
+                    let parts = [];
+
+                    if (uploadMode === 'single') {
+                        prompt = `Actúa como un coach de salud y diseñador de UI/UX experto en nutrigenética y microbioma intestinal. Tu tarea es analizar un reporte de REWELL en PDF que contiene AMBAS secciones (genética y microbioma) y generar un panel de bienestar visualmente atractivo, integrado y accionable.`;
+                        parts.push({ text: prompt });
+                        parts.push({ inlineData: { mimeType: "application/pdf", data: await pdfToBase64(reportFile) } });
+                    } else {
+                        prompt = `Actúa como un coach de salud y diseñador de UI/UX experto en nutrigenética y microbioma intestinal. Tu tarea es analizar dos reportes de REWELL en PDF (uno de genética y otro de microbioma) y generar un panel de bienestar visualmente atractivo, integrado y accionable.`;
+                        parts.push({ text: prompt });
+                        parts.push({ inlineData: { mimeType: "application/pdf", data: await pdfToBase64(geneticsFile) } });
+                        parts.push({ inlineData: { mimeType: "application/pdf", data: await pdfToBase64(microbiomeFile) } });
+                    }
+
+                    const commonInstructions = `
+                        **REGLA DE ORO: NO escribas NINGÚN texto introductorio, saludo o explicación antes del código HTML. Tu respuesta DEBE comenzar DIRECTAMENTE con la etiqueta \`<header>\`. Cualquier texto fuera del código HTML resultará en un error.**
+
+                        **Misión Crítica:** Genera el CÓDIGO HTML COMPLETO para el panel de resultados. El HTML debe incluir un <header>, un <main> y un <footer>. El diseño debe tener una barra de navegación superior fija y un contenido principal bien estructurado con tarjetas e iconos. El nombre del usuario se encuentra en los reportes.
+
+                        **Análisis y Contenido Requerido - PRESTA MUCHA ATENCIÓN:**
+
+                        1.  **Análisis Integrado y Profundo:** Es **CRUCIAL** que analices el/los reporte(s) completo(s), dando la misma importancia a la sección de genética y a la de microbioma. Las recomendaciones deben ser una **SÍNTESIS** de ambos.
+                        2.  **Estilo para "Acciones Concretas":** Es **VITAL** que CADA VEZ que generes un título "**Acciones Concretas:**" y su lista de recomendaciones, los envuelvas en un \`<div class="bg-orange-100 text-blue-800 p-4 rounded-lg mt-4 print-highlight">\`. El título "**Acciones Concretas:**" debe tener la clase \`font-semibold\`. Todo el texto dentro de este div debe tener la clase \`print-highlight-text\`.
+                        3.  **Extracción de Datos Clave del Microbioma:** Del reporte, extrae y destaca específicamente los hallazgos negativos como: baja producción de SCFA/Butirato, desbalance en el ratio Firmicutes/Bacteroidetes, niveles elevados de Proteobacterias, y cualquier predisposición a constipación o inflamación. Estos deben ser puntos centrales en las recomendaciones.
+                        
+                        **Estructura del Reporte de Salida (HTML):**
+
+                        1.  **Header Fijo:** Un \`<header class="bg-white shadow-md sticky top-0 z-50 no-print">\` que contenga un \`<h1>\` "Tu Panel de Bienestar, [Nombre del Usuario]", una barra de navegación con enlaces a las 5 secciones, y dos botones: "Exportar a PDF" \`<button id="print-button" ...>\` y "Reiniciar" \`<button id="reset-button" ...>\`.
+                        2.  **Contenido Principal (<main>):**
+                            * **Sección 1 (id="seccion1"): Puntos de Atención Clave:** Título claro con un icono SVG. Un grid de 3 columnas con tarjetas para "Tus Fortalezas", "Tus Áreas de Atención" y "Tus Puntos de Acción Prioritarios". Cada tarjeta con icono. **REGLA CRÍTICA: Para cada una de estas tres tarjetas, debes devolver SOLO las 3 a 5 sugerencias MÁS RELEVANTES Y PRIORITarias basadas en el análisis completo. Sé conciso y enfócate en el mayor impacto para el usuario.** Asegúrate de que los hallazgos del microbioma estén bien representados aquí. Para la tarjeta "Tus Puntos de Acción Prioritarios", aplica el estilo de resaltado para "Acciones Concretas" a la lista de puntos.
+                            * **Sección 2 (id="seccion2"): Tu Estado Vitamínico (Genética + Microbioma):** Título claro con un icono SVG. Esta sección es CRÍTICA. Debe tener un grid de tarjetas (2 o 3 columnas). Cada tarjeta representa una vitamina en estado de atención o prioritario. La tarjeta debe detallar claramente: "**Hallazgo Genético:**", "**Hallazgo del Microbioma:**" (si aplica, si no, debes poner "No presenta deficiencias"), y la sección de "**Acciones Concretas:**" (que debe estar resaltada). **REGLA CRÍTICA: DEBES buscar explícitamente la sección 'Producción de vitamina K2 por el microbioma' para la Vitamina K y mostrarla.**
+                            * **Sección 3 (id="seccion3"): Tu Estrategia de Nutrición y Plan Semanal:** Título claro con un icono SVG. Una tarjeta para "Puntos Clave de Nutrición". Debajo, otra tarjeta para la tabla del "plan nutricional semanal educativo basado en tus perfiles genetico y de microbiota". **La tabla debe estar completa de Lunes a Domingo.** **La columna "Beneficio Clave" debe ser muy específica y educativa,** ej: "Aporta fibra para tus bacterias productoras de Butirato, que se encuentran bajas".
+                            * **Sección 4 (id="seccion4"): Bienestar, Deporte y Descanso:** Título claro con un icono SVG. Un grid de 2 columnas con tarjetas para "Tu Perfil Deportivo" y "Optimiza tu Descanso", cada una con su sección de "**Acciones Concretas:**" resaltada.
+                            * **Sección 5 (id="seccion5"): Salud Preventiva y Microbioma:** Título claro con un icono SVG. Grid de 2 columnas. Una tarjeta para "Salud Preventiva" (listando los puntos como Tiroiditis, etc.). **REGLA CRÍTICA:** Para cada condición en esta tarjeta, **SOLO** debes incluir una subsección de "**Acciones Concretas**" (resaltada) si el reporte indica un riesgo 'alto', 'elevado' o 'aumentado'. Si el riesgo es 'promedio', 'normal' o 'bajo', **NO** debes incluir acciones concretas para ese punto. La otra tarjeta será para "Claves de tu Microbioma", **detallando los hallazgos importantes del reporte de microbioma y su sección de "Acciones Concretas" resaltada.**
+                        3. **Footer:** Un \`<footer class="web-footer text-center p-6 mt-12 bg-slate-100 text-xs text-slate-500 no-print">\` con el texto: "Rewell es propiedad de Heritas (www.heritas.com.ar). Los test de ADN de Rewell no indican un diagnóstico médico sobre ninguna de las condiciones de salud incluidas. Estos test entregan información que podrían ayudar en la prevención temprana para tomar decisiones informadas. Si usted presenta alguna patología o sintomatología preexistente debería consultarlo con su médico habitual."
+
+                        **Instrucciones Adicionales:**
+                        * El output debe ser únicamente el código HTML desde la etiqueta \`<header>\` hasta el final de la etiqueta \`</footer>\`. No incluyas \`<html>\`, \`<head>\`, \`<body>\`, ni el script de inicialización.
+                        * **RECUERDA: Tu respuesta debe ser solo el código HTML. Sin explicaciones ni texto adicional.**
+                        * El idioma de todo el contenido debe ser Español.
+                        * Usa un diseño limpio, con fondos \`bg-white\` para las tarjetas, sombras \`shadow-md\`, y esquinas redondeadas \`rounded-lg\`. Usa naranja claro como color de acento.
+                        * Usa iconos SVG inline de Heroicons o similares para un look profesional.
+                        * **CRÍTICO: No utilices gráficos de Chart.js ni la etiqueta <canvas>.**
+                    `;
+                    parts.push({ text: commonInstructions });
+
+                    const payload = { contents: [{ role: "user", parts: parts }] };
+
+                    let response;
+                    const maxRetries = 3;
+                    let attempt = 0;
+                    let delay = 2000;
+
+                    while (attempt < maxRetries) {
+                        attempt++;
+                        response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                        if (response.ok) break;
+
+                        if (response.status === 429 || response.status === 503) {
+                            if (attempt >= maxRetries) throw new Error("El modelo de IA está sobrecargado. Por favor, inténtalo de nuevo más tarde.");
+                            loadingText.textContent = `El modelo está ocupado. Reintentando en ${delay / 1000} segundos... (Intento ${attempt}/${maxRetries})`;
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2;
+                        } else {
+                            let errorDetail = `Error: ${response.status} ${response.statusText}`;
+                            try {
+                                const errorResult = await response.json();
+                                if (errorResult.error && errorResult.error.message) errorDetail = errorResult.error.message;
+                            } catch (e) {
+                               errorDetail = "No se pudo obtener detalle del error de la API.";
+                            }
+                            throw new Error(errorDetail);
+                        }
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts.length > 0) {
+                        let htmlContent = result.candidates[0].content.parts[0].text;
+                        htmlContent = htmlContent.replace(/```html/g, '').replace(/```/g, '');
+                        resultsScreen.innerHTML = htmlContent;
+                        loadingScreen.style.display = 'none';
+                        resultsScreen.style.display = 'block';
+                        initializeResultsScreen();
+                    } else {
+                         if (result.promptFeedback && result.promptFeedback.blockReason) {
+                            throw new Error(`La solicitud fue bloqueada por la API. Razón: ${result.promptFeedback.blockReason}`);
+                        }
+                        throw new Error("Respuesta inesperada o vacía de la API. El modelo no pudo procesar los reportes.");
+                    }
+
+                } catch (error) {
+                    console.error("Detailed error:", error);
+                    showError(`Ocurrió un error al analizar los reportes: ${error.message}`);
+                    loadingScreen.style.display = 'none';
+                    uploadScreen.style.display = 'flex';
+                }
+            };
+            
+            const initializeResultsScreen = () => {
+                const resetButton = document.getElementById('reset-button');
+                if (resetButton) {
+                    resetButton.addEventListener('click', resetApp);
+                }
+                const printButton = document.getElementById('print-button');
+                if(printButton) {
+                    printButton.addEventListener('click', () => {
+                        window.print();
+                    });
+                }
+                initializeNav();
+            };
+
+            analyzeButton.addEventListener('click', handleAnalysis);
+            updateButtonState();
+        });
+
+        function initializeNav() {
+            try {
+                const navLinks = document.querySelectorAll('.nav-link');
+                const sections = document.querySelectorAll('main section');
+                if (navLinks.length > 0 && sections.length > 0) {
+                    const observer = new IntersectionObserver((entries) => {
+                        let visibleSectionId = null;
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                if (!visibleSectionId) {
+                                    visibleSectionId = entry.target.id;
+                                }
+                            }
+                        });
+                        if (visibleSectionId) {
+                            navLinks.forEach(link => {
+                                const linkHref = link.getAttribute('href');
+                                if (linkHref) {
+                                   link.classList.toggle('active', linkHref.substring(1) === visibleSectionId);
+                                }
+                            });
+                        }
+                    }, { root: null, rootMargin: '0px 0px -50% 0px', threshold: 0.5 });
+                    sections.forEach(section => observer.observe(section));
+                }
+            } catch (e) {
+                console.error("Error al inicializar la navegación:", e);
+            }
+        }
+    </script>
+</body>
+</html>
