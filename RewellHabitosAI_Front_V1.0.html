@@ -310,28 +310,58 @@
                 updateButtonState();
             };
 
+            // --- FUNCIÓN DE VALIDACIÓN MODIFICADA ---
             async function validatePdf(file) {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = async (event) => {
                         try {
                             const pdf = await pdfjsLib.getDocument({ data: event.target.result }).promise;
-                            const page = await pdf.getPage(1);
-                            const textContent = await page.getTextContent();
-                            const pageText = textContent.items.map(item => item.str).join(' ').toUpperCase();
+                            const searchText = "fecha de reporte";
+                            let found = false;
 
-                            if (pageText.includes("REPORTE DE RESULTADOS")) {
+                            // Iterar desde la página 2 hasta el final
+                            for (let i = 2; i <= pdf.numPages; i++) {
+                                const page = await pdf.getPage(i);
+                                const viewport = page.getViewport({ scale: 1.0 });
+                                const textContent = await page.getTextContent();
+
+                                for (const item of textContent.items) {
+                                    const itemText = item.str.toLowerCase();
+                                    // La matriz de transformación es [scaleX, skewY, skewX, scaleY, x, y]
+                                    // El origen (0,0) está en la esquina inferior izquierda.
+                                    const x = item.transform[4];
+                                    const y = item.transform[5];
+
+                                    // Comprobar si se encuentra el texto, si está en la mitad derecha de la página,
+                                    // y en el 15% inferior de la página (área típica del pie de página).
+                                    if (itemText.includes(searchText) && x > viewport.width / 2 && y < viewport.height * 0.15) {
+                                        found = true;
+                                        break; // Salir del bucle interior una vez encontrado
+                                    }
+                                }
+
+                                if (found) {
+                                    break; // Salir del bucle exterior una vez encontrado
+                                }
+                            }
+
+                            if (found) {
                                 resolve(true);
                             } else {
-                                reject(new Error(`El archivo "${file.name}" no parece ser un reporte de Rewell.`));
+                                // Rechazar con un error genérico para no exponer detalles
+                                reject(new Error("Validation Failed"));
                             }
+
                         } catch (error) {
                             console.error("Error validando el PDF:", error);
-                            reject(new Error(`No se pudo leer o procesar el archivo PDF: "${file.name}".`));
+                             // Rechazar con un error genérico para no exponer detalles
+                            reject(new Error("Validation Failed"));
                         }
                     };
                     reader.onerror = () => {
-                        reject(new Error(`Error al leer el archivo: "${file.name}".`));
+                         // Rechazar con un error genérico para no exponer detalles
+                        reject(new Error("Validation Failed"));
                     };
                     reader.readAsArrayBuffer(file);
                 });
@@ -357,7 +387,8 @@
                     }
                 } catch (validationError) {
                     console.error("Error de validación:", validationError);
-                    showError("No puedo analizar esos archivos ya que no corresponden a Rewell.");
+                    // Mostrar siempre un mensaje de error genérico al usuario
+                    showError("Los archivos no corresponden a un reporte de Rewell.");
                     loadingScreen.style.display = 'none';
                     uploadScreen.style.display = 'flex';
                     return;
