@@ -298,6 +298,8 @@
             };
 
             const handleAnalysis = async () => {
+                const apiKey = "AIzaSyASKTV6JD2FfHqH7HTKbeXVnmn2pQJ_OvQ"; 
+
                 if ((uploadMode === 'single' && !reportFile) || (uploadMode === 'dual' && (!geneticsFile || !microbiomeFile))) {
                     showError("Por favor, sube los archivos requeridos.");
                     return;
@@ -310,10 +312,7 @@
                 loadingScreen.style.display = 'flex';
 
                 try {
-                    // API Key is removed for security. The execution environment will provide it.
-                    const apiKey = ""; 
-                    // Using the latest stable version of the Gemini Flash model.
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     
                     let prompt;
                     let parts = [];
@@ -344,7 +343,7 @@
 
                         1.  **Header Fijo:** Un \`<header class="bg-white shadow-md sticky top-0 z-50 no-print">\` que contenga un \`<h1>\` "Tu Panel de Bienestar, [Nombre del Usuario]", una barra de navegación con enlaces a las 5 secciones, y dos botones: "Exportar a PDF" \`<button id="print-button" ...>\` y "Reiniciar" \`<button id="reset-button" ...>\`.
                         2.  **Contenido Principal (<main>):**
-                            * **Sección 1 (id="seccion1"): Puntos de Atención Clave:** Título claro con un icono SVG. Un grid de 3 columnas con tarjetas para "Tus Fortalezas", "Tus Áreas de Atención" y "Tus Puntos de Acción Prioritarios". Cada tarjeta con icono. **REGLA CRÍTICA: Para cada una de estas tres tarjetas, debes devolver SOLO las 3 a 5 sugerencias MÁS RELEVANTES Y PRIORITARIAS basadas en el análisis completo. Sé conciso y enfócate en el mayor impacto para el usuario.** Asegúrate de que los hallazgos del microbioma estén bien representados aquí. Para la tarjeta "Tus Puntos de Acción Prioritarios", aplica el estilo de resaltado para "Acciones Concretas" a la lista de puntos.
+                            * **Sección 1 (id="seccion1"): Puntos de Atención Clave:** Título claro con un icono SVG. Un grid de 3 columnas con tarjetas para "Tus Fortalezas", "Tus Áreas de Atención" y "Tus Puntos de Acción Prioritarios". Cada tarjeta con icono. **REGLA CRÍTICA: Para cada una de estas tres tarjetas, debes devolver SOLO las 3 a 5 sugerencias MÁS RELEVANTES Y PRIORITarias basadas en el análisis completo. Sé conciso y enfócate en el mayor impacto para el usuario.** Asegúrate de que los hallazgos del microbioma estén bien representados aquí. Para la tarjeta "Tus Puntos de Acción Prioritarios", aplica el estilo de resaltado para "Acciones Concretas" a la lista de puntos.
                             * **Sección 2 (id="seccion2"): Tu Estado Vitamínico (Genética + Microbioma):** Título claro con un icono SVG. Esta sección es CRÍTICA. Debe tener un grid de tarjetas (2 o 3 columnas). Cada tarjeta representa una vitamina en estado de atención o prioritario. La tarjeta debe detallar claramente: "**Hallazgo Genético:**", "**Hallazgo del Microbioma:**" (si aplica, si no, debes poner "No presenta deficiencias"), y la sección de "**Acciones Concretas:**" (que debe estar resaltada). **REGLA CRÍTICA: DEBES buscar explícitamente la sección 'Producción de vitamina K2 por el microbioma' para la Vitamina K y mostrarla.**
                             * **Sección 3 (id="seccion3"): Tu Estrategia de Nutrición y Plan Semanal:** Título claro con un icono SVG. Una tarjeta para "Puntos Clave de Nutrición". Debajo, otra tarjeta para la tabla del "plan nutricional semanal educativo basado en tus perfiles genetico y de microbiota". **La tabla debe estar completa de Lunes a Domingo.** **La columna "Beneficio Clave" debe ser muy específica y educativa,** ej: "Aporta fibra para tus bacterias productoras de Butirato, que se encuentran bajas".
                             * **Sección 4 (id="seccion4"): Bienestar, Deporte y Descanso:** Título claro con un icono SVG. Un grid de 2 columnas con tarjetas para "Tu Perfil Deportivo" y "Optimiza tu Descanso", cada una con su sección de "**Acciones Concretas:**" resaltada.
