@@ -313,6 +313,8 @@
                     }
 
                     const commonInstructions = `
+                        **REGLA DE ORO: NO escribas NINGÚN texto introductorio, saludo o explicación antes del código HTML. Tu respuesta DEBE comenzar DIRECTAMENTE con la etiqueta \`<header>\`. Cualquier texto fuera del código HTML resultará en un error.**
+
                         **Misión Crítica:** Genera el CÓDIGO HTML COMPLETO para el panel de resultados. El HTML debe incluir un <header>, un <main> y un <footer>. El diseño debe tener una barra de navegación superior fija y un contenido principal bien estructurado con tarjetas e iconos. El nombre del usuario se encuentra en los reportes.
 
                         **Análisis y Contenido Requerido - PRESTA MUCHA ATENCIÓN:**
@@ -333,8 +335,8 @@
                         3. **Footer:** Un \`<footer class="web-footer text-center p-6 mt-12 bg-slate-100 text-xs text-slate-500 no-print">\` con el texto: "Rewell es propiedad de Heritas (www.heritas.com.ar). Los test de ADN de Rewell no indican un diagnóstico médico sobre ninguna de las condiciones de salud incluidas. Estos test entregan información que podrían ayudar en la prevención temprana para tomar decisiones informadas. Si usted presenta alguna patología o sintomatología preexistente debería consultarlo con su médico habitual."
 
                         **Instrucciones Adicionales:**
-                        * El output debe ser únicamente el código HTML desde la etiqueta \`<header>\` hasta el final de la etiqueta \`</footer>\`.
-                        * No incluyas \`<html>\`, \`<head>\`, \`<body>\`, ni el script de inicialización.
+                        * El output debe ser únicamente el código HTML desde la etiqueta \`<header>\` hasta el final de la etiqueta \`</footer>\`. No incluyas \`<html>\`, \`<head>\`, \`<body>\`, ni el script de inicialización.
+                        * **RECUERDA: Tu respuesta debe ser solo el código HTML. Sin explicaciones ni texto adicional.**
                         * El idioma de todo el contenido debe ser Español.
                         * Usa un diseño limpio, con fondos \`bg-white\` para las tarjetas, sombras \`shadow-md\`, y esquinas redondeadas \`rounded-lg\`. Usa naranja claro como color de acento.
                         * Usa iconos SVG inline de Heroicons o similares para un look profesional.
@@ -446,3 +448,4 @@
     </script>
 </body>
 </html>
+
